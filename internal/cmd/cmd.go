@@ -19,13 +19,12 @@ const (
 )
 
 var (
-	defaultKubeConfigPath = path.Join(userHomeDir(), "./.kube/config")
+	defaultKubeConfigPath = path.Join(userHomeDir(), "/.kube/config")
 	kubectlCmd            = []string{"config", "unset"}
 	// configCommand is the config subcommand.
 	configCommand  *flag.FlagSet
 	logger         = log.New(os.Stdout, "kubecli 🍻  ", 0)
 	kubeConfigPath string
-	notFound       = "-"
 )
 
 func init() {
@@ -35,13 +34,8 @@ func init() {
 // Parse validate flags.
 func Parse() {
 	// get kube config path from flag or env.
-	configCommand.StringVar(&kubeConfigPath, "path", notFound, usagePath)
-	if kubeConfigPath == notFound {
-		kubeConfigPath = getEnv("kube-config-path", notFound)
-		if kubeConfigPath == notFound {
-			kubeConfigPath = defaultKubeConfigPath
-		}
-	}
+	configCommand.StringVar(&kubeConfigPath, "path",
+		getEnv("kube-config-path", defaultKubeConfigPath), usagePath)
 
 	// verify that subcommand has been provided
 	// os.Arg[0] is main command, os.Arg[1] is the subcommand
@@ -276,7 +270,8 @@ func getEnv(key, fallback string) string {
 func userHomeDir() string {
 	usr, err := user.Current()
 	if err != nil {
-		logger.Fatalln(err)
+		logger.Println(err)
+		return os.Getenv("HOME")
 	}
 	return usr.HomeDir
 }
