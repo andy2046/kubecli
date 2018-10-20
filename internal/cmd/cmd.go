@@ -66,6 +66,16 @@ func Parse() {
 		}
 
 		switch args[0] {
+		case "use-context":
+			if n < 2 {
+				printExit("context NAME required")
+			}
+			useContext(args[1])
+		case "namespace":
+			if n < 2 {
+				printExit("namespace NAME required")
+			}
+			namespace(args[1])
 		case "current-context":
 			currentContext()
 		case "get-users":
@@ -105,6 +115,8 @@ func printExit(str string) {
 func PrintUsage() {
 	logger.Printf(`Available Commands:
   current-context      Display the current-context
+  use-context NAME     Set current context to NAME
+  namespace NAME       Set namespace for current context to NAME
   delete-cluster NAME  Delete the specified cluster NAME from the kubeconfig
   delete-context NAME  Delete the specified context NAME from the kubeconfig
   delete-user NAME     Delete the specified user NAME from the kubeconfig
@@ -197,6 +209,33 @@ func deleteUser(users []string) {
 	}
 }
 
+func useContext(ctx string) {
+	cmd := exec.Command(kubectl, "config", "use-context", ctx)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Fatalln(err, string(out))
+	}
+}
+
+func namespace(ns string) {
+	data, err := ioutil.ReadFile(kubeConfigPath)
+	if err != nil {
+		logger.Fatalln(err)
+	}
+
+	k := &types.KubeConfig{}
+	err = k.Parse(data)
+	if err != nil {
+		logger.Fatalln(err)
+	}
+
+	cmd := exec.Command(kubectl, "config", "set-context", k.CurrentContext, "--namespace="+ns)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Fatalln(err, string(out))
+	}
+}
+
 func currentContext() {
 	data, err := ioutil.ReadFile(kubeConfigPath)
 	if err != nil {
@@ -208,7 +247,20 @@ func currentContext() {
 	if err != nil {
 		logger.Fatalln(err)
 	}
-	logger.Println(k.CurrentContext)
+
+	var cur types.Context
+	for _, kubeC := range k.Contexts {
+		if kubeC.Name == k.CurrentContext {
+			cur = kubeC
+		}
+	}
+
+	ns, ok := cur.Context["namespace"]
+	if !ok {
+		ns = "default"
+	}
+
+	logger.Printf("NAME: %v NAMESPACE: %v", k.CurrentContext, ns)
 }
 
 func getUsers() {
@@ -239,7 +291,12 @@ func getContexts() {
 		logger.Fatalln(err)
 	}
 	for _, kubeC := range k.Contexts {
-		logger.Println(kubeC.Name)
+		ns, ok := kubeC.Context["namespace"]
+		if !ok {
+			ns = "default"
+		}
+
+		logger.Printf("NAME: %v NAMESPACE: %v", kubeC.Name, ns)
 	}
 }
 

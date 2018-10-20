@@ -6,6 +6,8 @@
 
 ```sh
 kubecli config current-context      # Display the current-context
+kubecli config use-context NAME     # Set current context to NAME
+kubecli config namespace NAME       # Set namespace for current context to NAME
 kubecli config delete-cluster NAME  # Delete the specified cluster NAME from the kubeconfig
 kubecli config delete-context NAME  # Delete the specified context NAME from the kubeconfig
 kubecli config delete-user NAME     # Delete the specified user NAME from the kubeconfig
